@@ -196,6 +196,40 @@ def updateNotifications(token, notifications):
 
     return True
 
+def updateDomainNotifications(token, domain, notifications):
+    # Get userID from userToken
+    if (token.count('$') != 1):
+        return False
+    token = token.split('$')
+    userID = token[0]
+    token = token[1]
+        
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    cursor.execute("SELECT domains FROM users WHERE id = %s", (userID,))
+    user = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    print(domain)
+    print(notifications)
+
+    # Read json token from first user
+    user = user[0][0]
+    user = json.loads(user)
+    for userDomain in user:
+        if (userDomain['name'] == domain):
+            userDomain['notifications'] = notifications
+
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET domains = %s WHERE id = %s", (json.dumps(user), userID,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return True
+
 def updateNotificationProvider(token, provider,account):
     # Get userID from userToken
     if (token.count('$') != 1):

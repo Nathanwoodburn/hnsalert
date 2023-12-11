@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Link Service - HNS Alert</title>
+    <title>{{domain}}/ - HNS Alert</title>
     <meta name="twitter:image" content="https://alert.woodburn.au/assets/img/favicon.png">
     <meta property="og:description" content="Alert system for Handshake domains">
     <meta property="og:type" content="website">
@@ -27,9 +27,10 @@
 
 <body>
     <nav class="navbar navbar-expand-md sticky-top py-3 navbar-dark" id="mainNav">
-        <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><img src="/assets/img/server-icon.png" style="margin-right: 20px;"><span>HNS Alert</span></a><a class="btn btn-primary shadow" role="button" href="logout">Logout</a></div>
+        <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><img src="/assets/img/server-icon.png" style="margin-right: 20px;"><span>HNS Alert</span></a><a class="btn btn-primary shadow" role="button" href="/login">Account</a></div>
     </nav>
     <section class="py-5">
+        <h1 class="text-center">{{domain}}/ Info</h1>
         <div class="container py-5">
             <div class="row mx-auto">
                 <div class="col">
@@ -39,21 +40,32 @@
                                 <div class="container">
                                     <div class="row mb-5">
                                         <div class="col-md-8 col-xl-6 text-center mx-auto">
-                                            <h2>Link {{service}}</h2>
-                                            <p class="w-lg-50">Link {{service}} to allow sending notifications via {{service}}</p>
+                                            <h2>{{domain}}/ Status</h2>
+                                            <p class="w-lg-50">{{domain}} {{next}} in {{when_blocks}} blocks (~{{when_time}})<br>{%if transfering %}<br>{{domain}} is currently transferring<br>{%endif%}</p>
                                         </div>
                                     </div>
-                                    <div class="row d-flex justify-content-center">
-                                        <div class="col-md-6 col-xl-4">
-                                            <div class="card mb-5">
-                                                <div class="card-body d-flex flex-column align-items-center">
-                                                    <form class="text-center" method="post">
-                                                        <div class="mb-3"><input class="form-control" type="text" name="account" placeholder="{{service_prompt}}" value="{{account}}"></div>
-                                                        <div class="mb-3"><button class="btn btn-primary d-block w-100" type="submit">Link</button></div><input class="form-control" type="hidden" name="service" value="{{service}}">
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h4 class="card-title">Notification options</h4>
+                                        <h6 class="text-muted card-subtitle mb-2">These are per domain options. These options will override global settings once you save them</h6>
+                                        <form method="post" action="/notification-options"><input class="form-control" type="hidden" name="domain" value="{{domain}}">
+                                            <ul class="list-group">
+                                                <li class="list-group-item"><span style="display: block;">Domain expiry 1 week notice</span>{% for platform, enabled in expiry_week.items() %}
+    <div class="form-check form-switch form-check-inline">
+        <input id="formCheck-{{ loop.index }}" class="form-check-input" type="checkbox" name="{{ platform }}_week" {% if enabled %}checked{% endif %}/>
+        <label class="form-check-label" for="formCheck-{{ loop.index }}">{{ platform|capitalize }}</label>
+    </div>
+{% endfor %}</li>
+                                                <li class="list-group-item"><span style="display: block;">Domain expiry 1 month notice</span>{% for platform, enabled in expiry_month.items() %}
+    <div class="form-check form-switch form-check-inline">
+        <input id="formCheck-{{ loop.index }}" class="form-check-input" type="checkbox" name="{{ platform }}_month" {% if enabled %}checked{% endif %}/>
+        <label class="form-check-label" for="formCheck-{{ loop.index }}">{{ platform|capitalize }}</label>
+    </div>
+{% endfor %}</li>
+                                            </ul>
+                                            <div style="text-align: right;"><input class="btn btn-primary" type="submit" value="Save" style="margin-top: 20px;"></div>
+                                        </form>
                                     </div>
                                 </div>
                             </section>

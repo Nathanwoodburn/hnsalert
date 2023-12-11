@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Products - HNS Alert</title>
+    <title>Dashboard - HNS Alert</title>
     <meta name="twitter:image" content="https://alert.woodburn.au/assets/img/favicon.png">
     <meta property="og:description" content="Alert system for Handshake domains">
     <meta property="og:type" content="website">
@@ -12,25 +12,30 @@
     <meta name="description" content="Alert system for domains on the Handshake chain">
     <meta property="og:title" content="HNSAlert">
     <meta name="twitter:card" content="summary">
-    <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="assets/img/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png" media="(prefers-color-scheme: dark)">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png" media="(prefers-color-scheme: dark)">
-    <link rel="icon" type="image/png" sizes="180x180" href="assets/img/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="assets/img/android-chrome-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="assets/img/android-chrome-512x512.png">
-    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="/assets/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16x16.png" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32x32.png" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" sizes="180x180" href="/assets/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/img/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/img/android-chrome-512x512.png">
+    <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800&amp;display=swap">
-    <link rel="stylesheet" href="assets/css/Login-Form-Basic-icons.css">
+    <link rel="stylesheet" href="/assets/css/Login-Form-Basic-icons.css">
 </head>
 
 <body>
     <nav class="navbar navbar-expand-md sticky-top py-3 navbar-dark" id="mainNav">
-        <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><img src="assets/img/server-icon.png" style="margin-right: 20px;"><span>HNS Alert</span></a><a class="btn btn-primary shadow" role="button" href="logout">Logout</a></div>
+        <div class="container"><a class="navbar-brand d-flex align-items-center" href="/"><img src="/assets/img/server-icon.png" style="margin-right: 20px;"><span>HNS Alert</span></a>{%if admin%}
+<a href="/sync">Sync</a>
+
+{%endif%}<a class="btn btn-primary shadow" role="button" href="logout">Logout</a></div>
     </nav>
     <section class="py-5">
         <div class="container py-5">
+            <h1 class="text-center" style="color: rgb(255,0,0);">{{error | safe}}</h1>
+            <h1 class="text-center" style="color: rgb(0,255,0);">{{success | safe}}</h1>
             <div class="row mb-4 mb-lg-5">
                 <div class="col-md-8 col-xl-6 text-center mx-auto">
                     <h2 class="fw-bold">Dashboard</h2>
@@ -77,6 +82,29 @@
                     </div>
                 </div>
             </div>
+            <div class="row mx-auto">
+                <div class="col">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 class="card-title">Domains</h4><ul class="list-group">
+    <li class="list-group-item">
+        <form action="/new-domain" method="post"><input class="form-control" type="text" name="domain" placeholder="newdomain/" />
+        </form>
+    </li>
+    
+{% for domain in domains %}
+    <li class="list-group-item">
+        <span style="margin-right: 20px;">{{domain}}/</span>        <div class="btn-group" role="group" style="position: absolute;height: 75%;right: 10px;top: 0.3em;">
+            <a class="btn btn-primary" role="button" style="padding: 0px;padding-left: 36px;padding-right: 36px;" href="/{{domain}}/info">Info</a>
+            <a class="btn btn-primary" role="button" style="padding: 0px;padding-right: 32px;padding-left: 32px;" href="/{{domain}}/delete">Delete</a>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
     <footer class="bg-dark">
@@ -99,7 +127,7 @@
                     </ul>
                 </div>
                 <div class="col-lg-3 text-center text-lg-start d-flex flex-column align-items-center order-first align-items-lg-start order-lg-last">
-                    <div class="fw-bold d-flex align-items-center mb-2"><img src="assets/img/favicon-32x32.png" style="margin-right: 10px;"><span>HNS Alert</span></div>
+                    <div class="fw-bold d-flex align-items-center mb-2"><img src="/assets/img/favicon-32x32.png" style="margin-right: 10px;"><span>HNS Alert</span></div>
                     <p class="text-muted">A Woodburn/ project</p>
                 </div>
             </div>
@@ -109,8 +137,8 @@
             </div>
         </div>
     </footer>
-    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
-    <script src="assets/js/bold-and-dark.js"></script>
+    <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="/assets/js/bold-and-dark.js"></script>
 </body>
 
 </html>

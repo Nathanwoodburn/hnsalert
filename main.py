@@ -9,6 +9,7 @@ import time
 import json
 import account
 import threading
+import domains
 
 
 dotenv.load_dotenv()
@@ -107,7 +108,20 @@ def dashboard():
         if (account.verifyUser(request.cookies.get('user_token'))):
             # Get user data
             user = account.getUser(request.cookies.get('user_token'))
-            domains = user['domains']
+            error = ""
+            if (request.args.get('error')):
+                error = request.args.get('error')
+            success = ""
+            if (request.args.get('success')):
+                success = request.args.get('success')
+
+
+            # For each domain in domains get only the name
+            domains = []
+            for domain in user['domains']:
+                domains.append(domain['name'])
+
+
             notifications = user['notifications']
             email = user['email'] + ' <a href="/test?service=email">Test</a>'
 
@@ -140,7 +154,8 @@ def dashboard():
 
             return render_template('dashboard.html', domains=domains, notifications=notifications, 
                                    email=email, discord=discord, telegram=telegram,
-                                      expiry_week=expiry_week,expiry_month=expiry_month)
+                                      expiry_week=expiry_week,expiry_month=expiry_month,
+                                      error=error,success=success,admin=user['admin'])
     
     return redirect('/login')
 
@@ -200,30 +215,161 @@ def notification_options():
         if (account.verifyUser(request.cookies.get('user_token'))):
             # Get user data
             user = account.getUser(request.cookies.get('user_token'))
-            notifications = user['notifications']
             expiry_week = {
-                "email": False,
-                "discord": False,
-                "telegram": False
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
             }
             expiry_month = {
                 "email": False,
                 "discord": False,
                 "telegram": False
             }
-            for key in request.form:
-                if (key.endswith('_week')):
-                    key = key[:-5]
-                    expiry_week[key] = True
-                elif (key.endswith('_month')):
-                    key = key[:-6]
-                    expiry_month[key] = True
-            
-            notifications['expiry_week'] = expiry_week
-            notifications['expiry_month'] = expiry_month
-            account.updateNotifications(request.cookies.get('user_token'), notifications)
 
-    return redirect('/dashboard')
+            if not request.form.get('domain'):
+                notifications = user['notifications']
+                for key in request.form:
+                    if (key.endswith('_week')):
+                        key = key[:-5]
+                        expiry_week[key] = True
+                    elif (key.endswith('_month')):
+                        key = key[:-6]
+                        expiry_month[key] = True
+                
+                notifications['expiry_week'] = expiry_week
+                notifications['expiry_month'] = expiry_month
+                account.updateNotifications(request.cookies.get('user_token'), notifications)
+                return redirect('/dashboard')
+            else:
+                notifications = {
+                    "expiry_week": {
+                        "email": False,
+                        "discord": False,
+                        "telegram": False
+                    },
+                    "expiry_month": {
+                        "email": False,
+                        "discord": False,
+                        "telegram": False
+                    }
+                }
+                domainList = user['domains']
+                domain = request.form.get('domain').lower()
+
+
+                for key in request.form:
+                    if (key.endswith('_week')):
+                        key = key[:-5]
+                        notifications['expiry_week'][key] = True
+                    elif (key.endswith('_month')):
+                        key = key[:-6]
+                        notifications['expiry_month'][key] = True
+                
+                account.updateDomainNotifications(request.cookies.get('user_token'),
+                                                  domain,notifications)
+                return redirect('/' + domain + '/info')
+
+
+#region domains
+@app.route('/new-domain', methods=['POST'])
+def new_domain():
+    # Check if user is logged in
+    if 'user_token' in request.cookies:
+        if (account.verifyUser(request.cookies.get('user_token'))):
+            # Get user data
+            user = account.getUser(request.cookies.get('user_token'))
+            domain = request.form.get('domain')
+            # Verify domain
+            domain = domains.verifyDomain(domain)
+            if (domain):
+                # Add domain to user
+                if (domains.addDomain(user['id'], domain)):
+                    return redirect('/dashboard?success=Domain added')
+                else:
+                    return redirect('/dashboard?error=Unable to add domain')
+            else:
+                return redirect('/dashboard?error=Invalid domain')
+    
+    return redirect('/login')
+
+@app.route('/<domain>/delete')
+def delete_domain(domain):
+    # Check if user is logged in
+    if 'user_token' in request.cookies:
+        if (account.verifyUser(request.cookies.get('user_token'))):
+            # Get user data
+            user = account.getUser(request.cookies.get('user_token'))
+            # Delete domain from user
+            if (domains.deleteDomain(user['id'], domain)):
+                return redirect('/dashboard?success=Domain deleted')
+            else:
+                return redirect('/dashboard?error=Unable to delete domain')
+    
+    return redirect('/login')
+
+@app.route('/sync')
+def sync_domains():
+    # Check if user is logged in
+    if 'user_token' in request.cookies:
+        if (account.verifyUser(request.cookies.get('user_token'))):
+            # Get user data
+            user = account.getUser(request.cookies.get('user_token'))
+            if (user['admin'] == False):
+                return redirect('/dashboard?error=You are not an admin')
+
+            # Sync domains
+            result =domains.syncDomains()
+            return redirect('/dashboard?error=' + result)
+    
+    return redirect('/login')
+
+@app.route('/<domain>/info')
+def domain(domain):
+    # Check if user is logged in
+    if 'user_token' in request.cookies:
+        if (account.verifyUser(request.cookies.get('user_token'))):
+            # Get domain info
+            domainInfo = domains.getCachedDomainInfo(domain)
+            print(domainInfo)
+            if (domainInfo):
+                if (domainInfo['status'] == 'pending'):
+                    return redirect('/dashboard?error=Domain is pending<br>Please wait a few minutes')
+
+
+                next = domainInfo['next']
+                when_blocks = domainInfo['when']
+                when_time = domains.blocksToTime(when_blocks)
+                transfering = domainInfo['transfering'] == 1
+
+                expiry_week = {
+                "email": False,
+                "discord": False,
+                "telegram": False
+                }
+                expiry_month = {
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
+                }
+                if ('notifications' in domainInfo):
+                    if ('expiry_week' in domainInfo['notifications']):
+                        expiry_week = domainInfo['notifications']['expiry_week']
+                    
+                    if ('expiry_month' in domainInfo['notifications']):
+                        expiry_month = domainInfo['notifications']['expiry_month']
+
+                return render_template('info.html', domain=str(domain).capitalize(),
+                                       next=next,when_blocks=when_blocks,when_time=when_time,
+                                       transfering=transfering,expiry_week=expiry_week,
+                                       expiry_month=expiry_month)
+            else:
+                return render_template('info.html', domain=str(domain).capitalize())
+    
+    return redirect('/login')
+
+
+
+#endregion
 
 @app.route('/assets/<path:path>')
 def send_assets(path):
