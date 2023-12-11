@@ -9,6 +9,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import requests
 import re
+import account
 
 dotenv.load_dotenv()
 
@@ -122,10 +123,13 @@ def syncDomains():
         userDomains = json.loads(user[1])
         # Loop through user domains
         for userDomain in userDomains:
+            customNotifications = False
+            if 'notifications' in userDomain:
+                customNotifications = userDomain['notifications']
+
             # Check if domain is pending
             if (userDomain['status'] == 'pending'):
                 try:
-                    print('Importing domain: ' + userDomain['name'])
                     r = requests.post('http://x:' + os.getenv('HSD_API_KEY') + '@' + os.getenv('HSD_IP') 
                          + ':' + os.getenv('HSD_WALLET_PORT'), json={'method': 'importname', 'params': [userDomain['name']]})
                     
@@ -137,6 +141,7 @@ def syncDomains():
                         userDomain['transfering'] = 0
                         userDomain['next'] = 'none'
                         userDomain['when'] = 0
+                        userDomain['records'] = ''
 
                         # Update user domains
                         conn = mysql.connector.connect(**db_config)
@@ -152,16 +157,24 @@ def syncDomains():
             # Get domain info
             r = requests.post('http://x:' + os.getenv('HSD_API_KEY') + '@' + os.getenv('HSD_IP') 
                          + ':' + os.getenv('HSD_PORT'), json={'method': 'getnameinfo', 'params': [userDomain['name']]})
-            print(json.dumps(r.json(), indent=4))
             if (r.status_code == 200):
                 data = r.json()
+                print(json.dumps(data, indent=4))
                 # Check if domain is registered
                 info = data['result']['info']
                 if (userDomain['transfering'] != info['transfer']):
                     # Update domain status
-                    alert('transfer', userDomain['name'], userID)
+                    if (notify('transfer', customNotifications, userID)):
+                            alert('transfer', userDomain['name'], userID)
                     userDomain['transfering'] = info['transfer']
 
+                if (userDomain['records'] != info['data'] and userDomain['records'] != ''):
+                    # Update domain status
+                    if (notify('dns', customNotifications, userID)):
+                        alert('dns', userDomain['name'], userID)
+                userDomain['records'] = info['data']
+
+                
                 if 'stats' in info:
                     if 'blocksUntilExpire' in info['stats']:
                         # Update domain status
@@ -170,8 +183,10 @@ def syncDomains():
                         previous = userDomain['when']
                         userDomain['when'] = info['stats']['blocksUntilExpire'] 
 
-                        if (crossTimeAlert(userDomain['next'], previous, userDomain['when'])):
-                            alert('expire', userDomain['name'], userID)
+                        if (crossTimeAlert(previous, userDomain['when']) or True):
+                            if (notify('expire', customNotifications, userID,
+                                       crossTimeAlert(previous, userDomain['when']))):
+                                alert('expire', userDomain['name'], userID, crossTimeAlert(previous, userDomain['when']))
 
                     elif 'blocksUntilBidding' in info['stats']:
                         # Update domain status
@@ -192,21 +207,90 @@ def syncDomains():
                 return "Failed to get info about domain: " + userDomain['name'] + "<br>" + str(r.text)
     return "Finished syncing domains"
 
-def alert(event,domain,user):
-    # TODO this later
-    pass
+def alert(event,domain,userID, time=False):
+    notification_name = {
+        'transfer': 'transfer_notifications',
+        'dns': 'edit_notifications'
+    }
 
-def crossTimeAlert(event,was, now):
+    # Get user
+    user = account.getUserFromID(userID)
+    # Check if domain has custom notifications
+    customNotifications = False
+    for domainInfo in user['domains']:
+        if (domainInfo['name'] == domain):
+            if 'notifications' in domainInfo:
+                customNotifications = domainInfo['notifications']
+            break
+    
+    if (customNotifications):
+        # Send custom notification
+        if (event != 'expire'):
+            send(customNotifications[notification_name[event]], domain, event,userID)
+        elif (time == 'month'):
+            send(customNotifications['expiry_month'], domain, event,userID)
+        elif (time == 'week'):
+            send(customNotifications['expiry_week'], domain, event,userID)
+        
+    else:
+        if (event != 'expire'):
+            send(user['notifications'][notification_name[event]], domain, event,userID)
+        elif (time == 'month'):
+            send(user['notifications']['expiry_month'], domain, event,userID)
+        elif (time == 'week'):
+            send(user['notifications']['expiry_week'], domain, event,userID)
+
+def send(providers,domain:str,event,userID):
+    user = account.getUserFromID(userID)
+
+    title = {
+        'transfer': 'Transfer Alert for {domain}',
+        'dns': '{domain} has had a DNS update',
+        'expire': '{domain} will expire soon'
+    }
+    content = {
+        'transfer': 'The domain {domain} has started a transfer to a new wallet',
+        'dns': 'The domain {domain} has had a DNS update',
+        'expire': '{domain} will expire in {time}'
+    }
+
+
+    title = title[event].replace('{domain}',domain.capitalize()+'/')
+    content = content[event].replace('{domain}',domain.capitalize()+'/')
+    if (event == 'expire'):
+        domainInfo = getCachedDomainInfo(domain)
+        content = content.replace('{time}',blocksToTime(domainInfo['when']))
+        
+    if (providers['email']):
+        account.sendEmail(user['email'],title,content)
+    if (providers['discord']):
+        if ('discord' in user['notifications']):
+            account.sendDiscordWebhook(user['notifications']['discord'],title,content)
+
+
+def notify(event, customNotifications, userID, time=False):
+    # TODO this will check if the user has notifications enabled for the event
+    # This should make the sync a bit faster but it's not a huge deal
+    if (event == 'transfer'):
+        return True
+    if (event == 'dns'):
+        return True    
+    if (event == 'expire'):
+        return True
+
+    return True
+
+def crossTimeAlert(was, now):
     # Check for each of these times to see if we should alert
     month = 4320
     week = 1008
 
     # If the time crossed the month mark
     if (was > month and now <= month):
-        return True
+        return "month"
     # If the time crossed the week mark
     if (was > week and now <= week):
-        return True
+        return "week"
     
     return False
 

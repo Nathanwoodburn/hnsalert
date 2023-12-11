@@ -10,6 +10,7 @@ import dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 import sys
 import json
+import domains
 
 dotenv.load_dotenv()
 db_config = {
@@ -48,14 +49,9 @@ def establish_database_connection():
 
 
 if __name__ == '__main__':
-    # scheduler = BackgroundScheduler()
-    # Run main.update_events every hour
-    # scheduler.add_job(update_events, 'cron', hour='*')
-    # Run main.reset_worship_chat every monday at 12am
-    # scheduler.add_job(reset_worship_chat, 'cron', day_of_week='mon', hour=0, minute=0)
-    # Run elvanto.refresh_all_tokens every 6 hours
-    # scheduler.add_job(refresh_oauth_tokens, 'interval', hours=6)
-    # scheduler.start()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(domains.syncDomains, 'cron', hour='*')
+    scheduler.start()
 
     establish_database_connection()
     db_init()

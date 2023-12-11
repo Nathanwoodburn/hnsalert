@@ -150,6 +150,17 @@ def getUser(userToken:str):
     user = user[0]
     return {'id': user[0], 'email': user[1], 'admin': user[2], 'notifications': json.loads(user[3]), 'domains': json.loads(user[4]), 'created_at': user[5]}
 
+def getUserFromID(userID:int):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, email, admin, notifications, domains, created_at FROM users WHERE id = %s", (userID,))
+    user = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # Read json token from first user
+    user = user[0]
+    return {'id': user[0], 'email': user[1], 'admin': user[2], 'notifications': json.loads(user[3]), 'domains': json.loads(user[4]), 'created_at': user[5]}
 
 def logoutUser(userToken:str):
     pass

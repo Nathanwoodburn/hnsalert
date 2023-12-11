@@ -150,11 +150,27 @@ def dashboard():
             }
             if ('expiry_month' in user['notifications']):
                 expiry_month = user['notifications']['expiry_month']
+            transfer_notifications = {
+                "email": True,
+                "discord": False,
+                "telegram": False
+            }
+            if ('transfer_notifications' in user['notifications']):
+                transfer_notifications = user['notifications']['transfer_notifications']
+            edit_notifications = {
+                "email": True,
+                "discord": False,
+                "telegram": False
+            }
+            if ('edit_notifications' in user['notifications']):
+                edit_notifications = user['notifications']['edit_notifications']
+
 
 
             return render_template('dashboard.html', domains=domains, notifications=notifications, 
                                    email=email, discord=discord, telegram=telegram,
                                       expiry_week=expiry_week,expiry_month=expiry_month,
+                                      transfer=transfer_notifications,edit=edit_notifications,
                                       error=error,success=success,admin=user['admin'])
     
     return redirect('/login')
@@ -213,58 +229,52 @@ def notification_options():
     # Check if user is logged in
     if 'user_token' in request.cookies:
         if (account.verifyUser(request.cookies.get('user_token'))):
-            # Get user data
-            user = account.getUser(request.cookies.get('user_token'))
-            expiry_week = {
+            notifications = {
+                "expiry_week": {
                     "email": False,
                     "discord": False,
                     "telegram": False
-            }
-            expiry_month = {
-                "email": False,
-                "discord": False,
-                "telegram": False
-            }
-
+                },
+                "expiry_month": {
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
+                },
+                "transfer_notifications": {
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
+                },
+                "edit_notifications": {
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
+                }
+            }        
+            # Get user data
+            user = account.getUser(request.cookies.get('user_token'))
+            for key in request.form:
+                if (key.endswith('_week')):
+                    key = key[:-5]
+                    notifications['expiry_week'][key] = True
+                elif (key.endswith('_month')):
+                    key = key[:-6]
+                    notifications['expiry_month'][key] = True
+                elif (key.endswith('_transfer')):
+                    key = key[:-9]
+                    notifications['transfer_notifications'][key] = True
+                elif (key.endswith('_edit')):
+                    key = key[:-5]
+                    notifications['edit_notifications'][key] = True
             if not request.form.get('domain'):
-                notifications = user['notifications']
-                for key in request.form:
-                    if (key.endswith('_week')):
-                        key = key[:-5]
-                        expiry_week[key] = True
-                    elif (key.endswith('_month')):
-                        key = key[:-6]
-                        expiry_month[key] = True
-                
-                notifications['expiry_week'] = expiry_week
-                notifications['expiry_month'] = expiry_month
+                # Add user notifications
+                if 'discord' in user['notifications']:
+                    notifications['discord'] = user['notifications']['discord']
+
                 account.updateNotifications(request.cookies.get('user_token'), notifications)
                 return redirect('/dashboard')
             else:
-                notifications = {
-                    "expiry_week": {
-                        "email": False,
-                        "discord": False,
-                        "telegram": False
-                    },
-                    "expiry_month": {
-                        "email": False,
-                        "discord": False,
-                        "telegram": False
-                    }
-                }
-                domainList = user['domains']
-                domain = request.form.get('domain').lower()
-
-
-                for key in request.form:
-                    if (key.endswith('_week')):
-                        key = key[:-5]
-                        notifications['expiry_week'][key] = True
-                    elif (key.endswith('_month')):
-                        key = key[:-6]
-                        notifications['expiry_month'][key] = True
-                
+                domain = request.form.get('domain').lower()                
                 account.updateDomainNotifications(request.cookies.get('user_token'),
                                                   domain,notifications)
                 return redirect('/' + domain + '/info')
@@ -351,17 +361,33 @@ def domain(domain):
                     "discord": False,
                     "telegram": False
                 }
+                transfer_notifications = {
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
+                }
+                edit_notifications = {
+                    "email": False,
+                    "discord": False,
+                    "telegram": False
+                }
+
                 if ('notifications' in domainInfo):
                     if ('expiry_week' in domainInfo['notifications']):
                         expiry_week = domainInfo['notifications']['expiry_week']
                     
                     if ('expiry_month' in domainInfo['notifications']):
                         expiry_month = domainInfo['notifications']['expiry_month']
+                    if ('transfer_notifications' in domainInfo['notifications']):
+                        transfer_notifications = domainInfo['notifications']['transfer_notifications']
+                    if ('edit_notifications' in domainInfo['notifications']):
+                        edit_notifications = domainInfo['notifications']['edit_notifications']
 
                 return render_template('info.html', domain=str(domain).capitalize(),
                                        next=next,when_blocks=when_blocks,when_time=when_time,
                                        transfering=transfering,expiry_week=expiry_week,
-                                       expiry_month=expiry_month)
+                                       expiry_month=expiry_month, transfer=transfer_notifications,
+                                       edit=edit_notifications)
             else:
                 return render_template('info.html', domain=str(domain).capitalize())
     

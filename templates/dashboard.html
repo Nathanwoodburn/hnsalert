@@ -75,6 +75,18 @@
         <label class="form-check-label" for="formCheck-{{ loop.index }}">{{ platform|capitalize }}</label>
     </div>
 {% endfor %}</li>
+                                    <li class="list-group-item"><span style="display: block;">Domain transfer alerts</span>{% for platform, enabled in transfer.items() %}
+    <div class="form-check form-switch form-check-inline">
+        <input id="formCheck-{{ loop.index }}" class="form-check-input" type="checkbox" name="{{ platform }}_transfer" {% if enabled %}checked{% endif %}/>
+        <label class="form-check-label" for="formCheck-{{ loop.index }}">{{ platform|capitalize }}</label>
+    </div>
+{% endfor %}</li>
+                                    <li class="list-group-item"><span style="display: block;">Domain edit alerts</span>{% for platform, enabled in edit.items() %}
+    <div class="form-check form-switch form-check-inline">
+        <input id="formCheck-{{ loop.index }}" class="form-check-input" type="checkbox" name="{{ platform }}_edit" {% if enabled %}checked{% endif %}/>
+        <label class="form-check-label" for="formCheck-{{ loop.index }}">{{ platform|capitalize }}</label>
+    </div>
+{% endfor %}</li>
                                 </ul>
                                 <div style="text-align: right;"><input class="btn btn-primary" type="submit" value="Save" style="margin-top: 20px;"></div>
                             </form>
