@@ -18,6 +18,15 @@ services:
       DB_USER: db_user
       DB_PASSWORD: db_password
       DB_NAME: alert_db
+      EMAIL_FROM: noreply@hnshosting.au
+      EMAIL_PASSWORD: supersecretemailpassword
+      EMAIL_HOST: mail.woodburn.au
+      EMAIL_PORT: 587
+      EMAIL_USE_TLS: True
+      HSD_API_KEY: supersecretkey
+      HSD_IP: 10.2.1.15 # Set to your HSD IP
+      HSD_PORT: 12037 # Only change if using a custom port (or regtest)
+      HSD_WALLET_PORT: 12039 # Only change if using a custom port (or regtest)
       WORKERS: 2 # number of workers to run (should be 2 * number of cores)
 
   db:
