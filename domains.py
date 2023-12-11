@@ -162,6 +162,21 @@ def syncDomains():
                 print(json.dumps(data, indent=4))
                 # Check if domain is registered
                 info = data['result']['info']
+                if (info == None):
+                    # Update domain status
+                    userDomain['status'] = 'error'
+                    userDomain['transfering'] = 0
+                    userDomain['next'] = 'open for bidding'
+                    userDomain['when'] = 0
+                    # Update user domains
+                    conn = mysql.connector.connect(**db_config)
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE users SET domains = %s WHERE id = %s", (json.dumps(userDomains), userID))
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    continue
+
                 if (userDomain['transfering'] != info['transfer']):
                     # Update domain status
                     if (notify('transfer', customNotifications, userID)):
@@ -260,7 +275,7 @@ def send(providers,domain:str,event,userID):
     if (event == 'expire'):
         domainInfo = getCachedDomainInfo(domain)
         content = content.replace('{time}',blocksToTime(domainInfo['when']))
-        
+
     if (providers['email']):
         account.sendEmail(user['email'],title,content)
     if (providers['discord']):
@@ -334,4 +349,6 @@ def blocksToTime(blocks):
     if minutes and not years and not days:
         time_string += f"{minutes} {'min' if minutes == 1 else 'mins'}"
 
+    if not time_string:
+        time_string = "now"
     return time_string.rstrip(', ')
