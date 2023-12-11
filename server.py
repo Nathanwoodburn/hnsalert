@@ -8,7 +8,6 @@ from gunicorn.app.base import BaseApplication
 import os
 import dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
-import hvac
 import sys
 import json
 
