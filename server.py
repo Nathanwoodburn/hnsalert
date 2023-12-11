@@ -50,7 +50,7 @@ def establish_database_connection():
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(domains.syncDomains, 'cron', hour='*')
+    scheduler.add_job(domains.syncDomains, 'cron', minute='*/5')
     scheduler.start()
 
     establish_database_connection()
