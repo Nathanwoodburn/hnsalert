@@ -1,0 +1,10 @@
+python-dotenv
+requests
+flask
+jsonify
+mysql-connector-python
+email-validator
+bcrypt
+gunicorn
+Jinja2
+apscheduler
